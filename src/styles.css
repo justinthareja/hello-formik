@@ -649,7 +649,20 @@ button[type="submit"] {
   margin-top: 1rem;
 }
 
-
 .required {
   color: var(--red-400)
+}
+
+.flex-container {
+  display: flex;
+}
+
+.accordion {
+  border: 1px solid red;
+  padding: 8px;
+}
+
+.accordion-item {
+  border: 1px solid purple;
+  margin: 4px 0px;
 }
