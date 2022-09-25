@@ -36,12 +36,94 @@ for (let i = lastYear; i >= firstYear; i--) {
   years.push(i);
 }
 
-const Accordion = ({ children }) => {
-  return <div className="accordion">{children}</div>;
+const AccordionContext = React.createContext();
+const useAccordion = function () {
+  return React.useContext(AccordionContext);
 };
 
-const AccordionItem = ({ children }) => {
-  return <div className="accordion-item">{children}</div>;
+const Accordion = ({ children }) => {
+  const [items, setItems] = React.useState([]);
+
+  const toggleOpen = React.useCallback(
+    // how can you do this without passing an explicit key prop?
+    (key) => {
+      const newItems = [];
+      const keyedItemIndex = items.findIndex((item) => item.id === key);
+      if (keyedItemIndex < 0) {
+        console.error(`Cannot find <AccordionItem> with id=${key}`);
+      }
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (i === keyedItemIndex) {
+          newItems.push({ ...item, isOpen: !item.isOpen });
+        } else {
+          newItems.push(items[i]);
+        }
+      }
+
+      setItems(newItems);
+    },
+    [items]
+  );
+
+  React.useEffect(() => {
+    const newItems = [];
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      const hasDuplicateKeys = newItems.find(
+        (newItem) => newItem.id === child.props.id
+      );
+
+      if (hasDuplicateKeys) {
+        console.error(
+          "<Accordion> cannot have children with duplicate props.id"
+        );
+      }
+
+      newItems.push({ id: child.props.id, isOpen: true });
+    }
+
+    setItems(newItems);
+  }, [children]);
+
+  return (
+    <AccordionContext.Provider value={{ toggleOpen, items }}>
+      {children}
+    </AccordionContext.Provider>
+  );
+};
+
+const AccordionItem = ({ children, ...props }) => {
+  const { id } = props;
+  const { items } = useAccordion();
+  const thisItem = items.find((item) => item.id === id) || {};
+
+  let childrenToBeRendered = [...children].map((child) => ({
+    ...child,
+    props: { ...props, ...child.props },
+  }));
+  if (thisItem.isOpen === false) {
+    childrenToBeRendered = childrenToBeRendered.filter((childToBeRendered) => {
+      return childToBeRendered.type.name === "AccordionItemHeader";
+    });
+  }
+
+  return (
+    <div className="accordion-item">
+      <div className="container">{childrenToBeRendered}</div>{" "}
+    </div>
+  );
+};
+
+const AccordionItemHeader = ({ children, id }) => {
+  const { toggleOpen } = useAccordion();
+
+  return (
+    <div className="accordion-item-header" onClick={(e) => toggleOpen(id)}>
+      {children}
+    </div>
+  );
 };
 
 const SignupForm = () => {
@@ -58,8 +140,10 @@ const SignupForm = () => {
         {(formik) => (
           <Form>
             <Accordion>
-              <AccordionItem>
-                <h4>1. Welcome</h4>
+              <AccordionItem id="someUniqueKey">
+                <AccordionItemHeader>
+                  <h4>1. Welcome</h4>
+                </AccordionItemHeader>
                 <p>Please fill out your detials and press Continue</p>
                 <label htmlFor="firstName">
                   First Name<span className="required">*</span>
@@ -88,8 +172,10 @@ const SignupForm = () => {
 
                 <button type="button">Continue</button>
               </AccordionItem>
-              <AccordionItem>
-                <h4>2. Participant Information</h4>
+              <AccordionItem id="someUniqueKey2">
+                <AccordionItemHeader>
+                  <h4>2. Participant Information</h4>
+                </AccordionItemHeader>
                 <p>
                   All the information entered here will be kept private. Please
                   fill out as much as you can. Required fields have a red *
@@ -158,8 +244,10 @@ const SignupForm = () => {
                 </label>
                 <button type="button">Continue</button>
               </AccordionItem>
-              <AccordionItem>
-                <h4>3. Arrival / Room Info</h4>
+              <AccordionItem id="someUniqueKey3">
+                <AccordionItemHeader>
+                  <h4>3. Arrival / Room Info</h4>
+                </AccordionItemHeader>
 
                 <label>
                   Start Date<span className="required">*</span>
